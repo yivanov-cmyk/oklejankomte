@@ -1,0 +1,872 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.11.0/sweetalert2.all.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" 
+  rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #0033A0; 
+      --success: #10b981;
+      --danger: #ef4444;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-700: #374151;
+      --slate-800: #1e293b;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      background-color: #e2e8f0;
+      color: var(--slate-800);
+      margin: 0; padding: 10px; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+    }
+
+    .app-container { width: 100%; max-width: 600px; }
+
+    /* Karta główna */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.98);
+      border-radius: 28px; padding: 24px; margin-bottom: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid white;
+    }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; padding-bottom: 15px; border-bottom: 2px solid var(--slate-100);
+    }
+
+    /* PRZYCISKI GŁÓWNE - Pełna szerokość */
+    .menu-grid { display: flex; flex-direction: column; gap: 15px; }
+    
+    .btn-main {
+      width: 100%; height: 100px; border-radius: 20px; border: none;
+      display: flex; align-items: center; justify-content: center;
+      gap: 20px; color: white; font-weight: 800; font-size: 1.5rem;
+      cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .btn-main:active { transform: scale(0.98); }
+    .btn-main:disabled { filter: grayscale(1); opacity: 0.5; cursor: not-allowed; }
+    .btn-start { background: linear-gradient(135deg, #10b981, #059669); }
+    .btn-stop { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+    /* Sekcje */
+    .section { display: none; animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .input-group { margin-bottom: 20px; }
+    label { display: block; font-weight: 700; margin-bottom: 8px; color: #64748b; text-transform: uppercase; font-size: 0.8rem; }
+    input, select {
+      width: 100%; height: 60px; background: var(--slate-50);
+      border: 2px solid var(--slate-200); border-radius: 15px; padding: 0 15px; font-size: 1.2rem; box-sizing: border-box;
+    }
+    input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(0,51,160,0.1); }
+
+    /* LISTA AKTYWNYCH - KARTY */
+    .user-card {
+      background: white; padding: 15px; border-radius: 18px; margin-bottom: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+      border: 1px solid var(--slate-200); box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+    .user-name { font-weight: 700; font-size: 1rem; color: var(--slate-800); }
+    .user-proc { font-size: 0.75rem; color: #64748b; font-weight: 600; }
+    .timer-badge {
+      font-family: monospace; padding: 6px 12px; border-radius: 10px;
+      background: var(--slate-800); color: white; font-weight: 700; font-size: 0.9rem;
+    }
+
+    /* WERYFIKACJA HASŁA */
+    #passwordVerificationSection {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.95);
+      z-index: 1000; display: flex; align-items: center; justify-content: center;
+    }
+    .password-box { background: white; padding: 40px; border-radius: 30px; text-align: center; width: 90%; max-width: 400px; }
+
+    /* TOP 3 i Instrukcja */
+    .card-title { font-size: 0.7rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; text-transform: uppercase; }
+    .top-item { font-size: 0.8rem; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+    /* Kontener dla chmurek */
+    #activeUsers {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 10px 5px;
+    }
+
+    /* Podstawowy styl dymka */
+    .user-bubble {
+      max-width: 85%;
+      padding: 14px;
+      border-radius: 20px;
+      position: relative;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    /* Dymek po LEWEJ (indeksy parzyste) */
+    .user-bubble.left {
+      align-self: flex-start;
+      background: white;
+      border-bottom-left-radius: 4px;
+      border-left: 5px solid var(--primary);
+    }
+
+    /* Dymek po PRAWEJ (indeksy nieparzyste) */
+    .user-bubble.right {
+      align-self: flex-end;
+      background: #eef2ff;
+      border-bottom-right-radius: 4px;
+      border-right: 5px solid var(--success);
+      text-align: right;
+    }
+
+    .bubble-header {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--slate-800);
+      margin-bottom: 2px;
+    }
+
+    .bubble-sub {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    /* Timer wewnątrz dymka */
+    .bubble-timer {
+      margin-top: 8px;
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+
+    /* Kolory timera zgodne z Twoją logiką */
+    .t-normal { background: rgba(0,0,0,0.05); color: var(--slate-800); }
+    .t-warning { background: #fef3c7; color: #92400e; }
+    .t-danger { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body>
+
+  <div id="passwordVerificationSection">
+    <div class="password-box">
+      <h2 style="color:var(--primary); margin:0 0 10px 0;">Weryfikacja</h2>
+      <p style="color:#64748b; margin-bottom:25px; font-size:0.9rem;">Wprowadź hasło</p>
+      <input type="password" id="passwordInput" maxlength="8" placeholder="••••" style="text-align:center; font-size:2.5rem; letter-spacing:10px; margin-bottom:25px;">
+      <button onclick="verifyAndUnlock()" class="btn-main btn-start" style="height:70px;">ODBLOKUJ</button>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <div class="glass-card">
+      <header>
+        <div class="brand-title">
+          <h1 style="margin:0; color:var(--primary);">FM LOGISTIC</h1>
+          <span style="font-size:0.7rem; color:var(--success); font-weight:800;">● SYSTEM REJESTRACJI</span>
+        </div>
+        <button onclick="confirmClearSessions()" style="background:none; border:none; cursor:pointer; font-size: 1.2rem;">⚙️</button>
+      </header>
+
+      <div id="status" style="text-align:center; margin-bottom:10px; font-weight:700;"></div>
+
+      <div id="mainMenu" class="menu-grid">
+        <button class="btn-main btn-start" onclick="showSection('start')" disabled>
+          <span>📥</span> START 
+        </button>
+        <button class="btn-main btn-stop" onclick="showSection('stop')" disabled>
+          <span>📤</span> ZAKOŃCZ
+        </button>
+      </div>
+
+      <div id="startSection" class="section">
+        <h2 style="color:var(--success); font-size: 1.1rem; margin-bottom: 20px;">▶ ROZPOCZNIJ</h2>
+        <div class="input-group">
+          <label>Identyfikator</label>
+          <input type="text" id="login" placeholder="Zeskanuj..." onfocus="loadActiveUsers()">
+        </div>
+        <div class="input-group">
+          <label>Procedura</label>
+          <select id="procedure" onchange="updateFields('start')">
+            <option value="">-- wybierz --</option>
+            <option value="Oklejanie">Oklejanie</option>
+            <option value="Foliowanie">Foliowanie</option>
+            <option value="Kontener/Bulkzal">Kontener/Bulkzal</option>
+            <option value="Instrukcje">Instrukcje</option>
+            <option value="Przerwa">Przerwa</option>
+            <option value="Anomalia">Anomalia</option>
+            <option value="Copacking">Copacking</option>
+            <option value="Delegacja">Delegacja</option>
+          </select>
+        </div>
+        <div id="sscc-block" style="display:none;" class="input-group">
+          <label>Numer SSCC / ID</label>
+          <input type="text" id="sscc" placeholder="Skanuj kod...">
+        </div>
+        <button onclick="startProcess()" class="btn-main btn-start" style="height:70px; margin-bottom:10px;">POTWIERDŹ START</button>
+        <button onclick="backToMenu()" class="btn-main" style="height:60px; background:#475569;">COFNIJ</button>
+      </div>
+
+      <div id="stopSection" class="section">
+        <h2 style="color:var(--danger); font-size: 1.1rem; margin-bottom: 20px;">■ ZAKOŃCZ</h2>
+        <div class="input-group">
+          <label>Identyfikator</label>
+          <input type="text" id="stop_login" placeholder="Zeskanuj..." onfocus="loadActiveUsers()">
+        </div>
+        <div class="input-group">
+          <label>Procedura</label>
+          <select id="stop_procedure" onchange="updateFields('stop')">
+            <option value="">-- wybierz --</option>
+            <option value="Oklejanie">Oklejanie</option>
+            <option value="Foliowanie">Foliowanie</option>
+            <option value="Kontener/Bulkzal">Kontener/Bulkzal</option>
+            <option value="Instrukcje">Instrukcje</option>
+            <option value="Przerwa">Przerwa</option>
+            <option value="Anomalia">Anomalia</option>
+            <option value="Copacking">Copacking</option>
+            <option value="Delegacja">Delegacja</option>
+          </select>
+        </div>
+        <div id="params-block-stop"></div>
+        <button onclick="finishProcess()" class="btn-main btn-stop" style="height:70px; margin-bottom:10px;">ZATWIERDŹ KONIEC</button>
+        <button onclick="backToMenu()" class="btn-main" style="height:60px; background:#475569;">COFNIJ</button>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:20px;">
+      <div class="glass-card" style="padding:15px; margin:0;">
+        <div class="card-title">TOP 3 DZISIAJ</div>
+        <div id="topOklejanie"></div>
+      </div>
+      <div class="glass-card" style="padding:15px; margin:0;">
+        <div class="card-title">Instrukcja</div>
+        <div id="instr-slides" style="font-size:0.75rem; min-height:50px;">
+           <div class="instruction-slide active">1. Wybierz START lub STOP.</div>
+           <div class="instruction-slide">2. Zeskanuj identyfikator.</div>
+           <div class="instruction-slide">3. Potwierdź dane procesu.</div>
+        </div>
+        <div style="display:flex; justify-content:center; gap:10px; margin-top:5px;">
+           <button onclick="changeSlide(-1)" style="border:none; background:var(--slate-200); border-radius:50%; width:24px; height:24px; cursor:pointer;">←</button>
+           <button onclick="changeSlide(1)" style="border:none; background:var(--slate-200); border-radius:50%; width:24px; height:24px; cursor:pointer;">→</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="activeUsers"></div>
+  </div>
+
+  <footer style="text-align:center; color:#64748b; font-size:0.7rem; margin-top:10px; padding-bottom:30px;">
+    &copy; <span id="currentYear"></span> FM Logistic - Rejestracja Procesu
+  </footer>
+
+  <script>
+    
+    function verifyAndUnlock() {
+        const enteredPassword = document.getElementById('passwordInput').value.trim();
+
+        if (!enteredPassword) {
+            alert('Wprowadź hasło, aby kontynuować.');
+            return;
+        }
+
+        google.script.run
+            .withSuccessHandler(response => {
+                if (response === 'OK') {
+                    // Hasło poprawne, odblokowujemy aplikację
+                    unlockApp();
+                } else {
+                    alert(response); // Wyświetl komunikat z serwera
+                }
+            })
+            .withFailureHandler(error => {
+                alert('Wystąpił błąd podczas weryfikacji: ' + error.message);
+            })
+            .verifyPassword(enteredPassword);
+    }
+    
+    function unlockApp() {
+        // Ukrywa nakładkę z hasłem
+        const passwordSection = document.getElementById('passwordVerificationSection');
+        if (passwordSection) {
+            passwordSection.style.display = 'none';
+        }
+
+        // Odblokowuje przyciski "START" i "STOP"
+        const startButton = document.querySelector('#mainMenu button:first-child');
+        const stopButton = document.querySelector('#mainMenu button:last-child');
+        
+        if (startButton) startButton.disabled = false;
+        if (stopButton) stopButton.disabled = false;
+
+        // ... ewentualnie inne operacje, które mają nastąpić po odblokowaniu
+    }
+    let currentSlide = 0;
+    
+    
+    let storedStartData = {};
+    const slides = document.querySelectorAll(".instruction-slide");
+    
+    
+    function changeSlide(direction) {
+      if (slides.length === 0) return;
+      slides[currentSlide].style.display = "none"; 
+      slides[currentSlide].classList.remove("active");
+      currentSlide = (currentSlide + direction + slides.length) % slides.length;
+      slides[currentSlide].style.display = "block"; 
+      slides[currentSlide].classList.add("active");
+    }
+
+    function loadTopOklejanie() {
+        const container = document.getElementById("topOklejanie");
+        if (container) {
+            container.innerHTML = 'Ładowanie...';
+        }
+        
+        google.script.run
+            .withSuccessHandler(renderTopOklejanie)
+            .withFailureHandler(err => {
+                container.innerHTML = '<span class="text-red-500">Błąd ładowania TOP 3.</span>';
+            })
+            
+            .getTopOklejanieFromCache(); 
+    }
+
+    function renderTopOklejanie(list) {
+      const container = document.getElementById("topOklejanie");
+      if(!container) return;
+      container.innerHTML = "";
+
+      if (!Array.isArray(list) || list.length === 0) {
+        container.innerText = "Brak danych.";
+        return;
+      }
+
+      const medalStyles = [
+        { emoji: "🥇", classes: "bg-yellow-50 border-yellow-400 text-yellow-800 font-semibold" },
+        { emoji: "🥈", classes: "bg-slate-100 border-slate-400 text-slate-700 font-medium" },
+        { emoji: "🥉", classes: "bg-orange-50 border-orange-400 text-orange-700 font-medium" }
+      ];
+
+      list.forEach(({ user, qty }, index) => {
+        const div = document.createElement("div");
+        let baseClasses = "p-3 border rounded-lg shadow-sm text-sm mb-2"; 
+        div.className = baseClasses; 
+
+        let contentText = `${index + 1}. ${user}: ${qty} kartonów`;
+
+        if (index < medalStyles.length) { 
+          const style = medalStyles[index];
+          contentText = `${style.emoji} ${contentText}`;
+          style.classes.split(' ').forEach(cls => { 
+            // These classes are now defined in the <style> tag
+            div.classList.add(cls.replace(/\\:/g, ':')); 
+          });
+        } else { 
+          div.classList.add("border-slate-200"); 
+          div.classList.add("text-slate-600");
+        }
+        
+        div.innerText = contentText;
+        container.appendChild(div);
+      });
+    }
+  </script>
+
+  <script>
+    let isStarting = false;
+    let isStopping = false;
+    const paramMapStop = { 
+      Oklejanie: ["Ilosc_kartonow"], Foliowanie: ["Ilosc_pallet"], "Kontener/Bulkzal": ["Ilosc_kartonow", "Ilosc_referencji", "Ilosc_ludzi"], Instrukcje: ["Ilosc_kartonow"], Anomalia: ["Komentarz"], Copacking: ["Referencja", "Ilosc_kartonow"], Delegacja: ["Klient"]
+    };
+
+    function showSection(section) {
+      document.getElementById("mainMenu").style.display = "none";
+      const startSect = document.getElementById("startSection");
+      const stopSect = document.getElementById("stopSection");
+      if(startSect) startSect.style.display = section === "start" ? "block" : "none";
+      if(stopSect) stopSect.style.display = section === "stop" ? "block" : "none";
+      loadActiveUsers();
+      loadTopOklejanie();
+      setTimeout(() => {
+        if (section === "start" && document.getElementById("login")) {
+          document.getElementById("login").focus();
+        } else if (section === "stop" && document.getElementById("stop_login")) {
+          document.getElementById("stop_login").focus();
+        
+        }
+      }, 100); 
+    }
+
+    function confirmClearSessions() {
+      const pass = prompt("Podaj hasło administratora:");
+      if (pass === "admin123") { 
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run.withSuccessHandler(() => {
+              alert("Wyczyszczono aktywne sesje!"); 
+              loadActiveUsers();
+            }).withFailureHandler(err => alert("Błąd czyszczenia sesji: " + err.message))
+            .clearAllActiveSessions();
+        } else {
+            console.warn("google.script.run not available for confirmClearSessions. Simulating.");
+            alert("Symulacja: Wyczyszczono aktywne sesje!");
+            loadActiveUsers(); 
+        }
+      } else if (pass !== null && pass !== "") { 
+        alert("Błędne hasło.");
+      }
+    }
+
+    function backToMenu() {
+      const mainMenu = document.getElementById("mainMenu");
+      const startSect = document.getElementById("startSection");
+      const stopSect = document.getElementById("stopSection");
+      const statusEl = document.getElementById("status");
+
+      if(mainMenu) mainMenu.style.display = "flex"; 
+      if(startSect) startSect.style.display = "none";
+      if(stopSect) stopSect.style.display = "none";
+      if(statusEl) statusEl.innerText = ""; 
+    }
+
+    function updateFields(context) {
+        const procSelect = document.getElementById(context === "start" ? "procedure" : "stop_procedure");
+        if (!procSelect) return;
+        const proc = procSelect.value;
+
+        if (context === "start") {
+            const ssccBlock = document.getElementById("sscc-block");
+            if (ssccBlock) {
+                ssccBlock.style.display = (proc === "Oklejanie" || proc === "Kontener/Bulkzal" || proc === "Instrukcje") ? "block" : "none";
+            }
+            return;
+        }
+
+        
+        const paramsBlockStop = document.getElementById("params-block-stop");
+        if (!paramsBlockStop) return;
+        paramsBlockStop.innerHTML = "";
+
+        const fieldsToCreate = paramMapStop[proc] || [];
+        fieldsToCreate.forEach(id => {
+            const fieldContainer = document.createElement("div");
+            fieldContainer.className = "mb-3"; 
+
+            const label = document.createElement("label");
+            label.innerText = id.replace(/_/g, " ") + ":";
+            
+            label.className = "block text-sm font-medium text-slate-700 mb-1"; 
+            label.htmlFor = `${context}_${id}`;
+            fieldContainer.appendChild(label);
+
+            if (id === "Komentarz" && proc === "Anomalia") {
+                const select = document.createElement("select");
+                select.id = `${context}_${id}`;
+                select.className = "mt-1 block w-full"; 
+                ["ZWOZENIE", "PREPARACJA", "SPRZATANIE", "KARTONY","MAKI","SALING"].forEach(txt => {
+                    const option = document.createElement("option");
+                    option.value = txt;
+                    option.text = txt;
+                    select.appendChild(option);
+                });
+                fieldContainer.appendChild(select);
+            } else if (id === "Klient" && proc === "Delegacja") {
+                const select = document.createElement("select");
+                select.id = `${context}_${id}`;
+                select.className = "mt-1 block w-full"; 
+                ["Lindt Copacking", "Yves Rocher", "Foodcare", "Lindt","HUB"].forEach(txt => {
+                    const option = document.createElement("option");
+                    option.value = txt;
+                    option.text = txt;
+                    select.appendChild(option);
+                });
+                fieldContainer.appendChild(select);
+            } else { 
+                const input = document.createElement("input");
+                input.id = `${context}_${id}`;
+                input.type = "text";
+                input.className = "mt-1 block w-full"; 
+                fieldContainer.appendChild(input);
+            }
+            paramsBlockStop.appendChild(fieldContainer);
+        });
+    }
+
+    function startProcess() {
+        if (isStarting) return;
+        isStarting = true;
+
+        const loginInput = document.getElementById("login");
+        const procedureSelect = document.getElementById("procedure");
+        const ssccInput = document.getElementById("sscc");
+
+        //const login = loginInput ? loginInput.value.trim() : "";
+        const login = loginInput ? loginInput.value.trim().replace(/[^a-zA-Z0-9]/g, '') : "";
+        const procedure = procedureSelect ? procedureSelect.value : "";
+        const sscc = ssccInput ? ssccInput.value.trim() : "";
+
+        // Walidacja podstawowa
+        if (!login || !procedure) {
+            Swal.fire("Błąd", "Wprowadź login i procedurę.", "warning");
+            isStarting = false;
+            return;
+        }
+
+        // Walidacja SSCC
+        if (procedure === "Oklejanie" && !sscc) {
+            Swal.fire("Brak SSCC", "Skanowanie kodu SSCC jest obowiązkowe!", "error");
+            isStarting = false;
+            return;
+        }
+
+        Swal.fire({
+            title: 'Trwa zapisywanie...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        // Funkcja zapisująca (zdefiniowana wewnątrz, aby miała dostęp do zmiennych)
+        const proceedWithAddingSession = (currentMaskedLogin) => {
+            const data = {
+                login: login,
+                loginMask: currentMaskedLogin,
+                procedure: procedure,
+                sscc: (procedure === "Oklejanie" || procedure === "Kontener/Bulkzal" || procedure === "Instrukcje") ? sscc : "",
+                start: new Date().toISOString(),
+                startTimestamp: Date.now()
+            };
+
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Rozpoczęto!',
+                            text: `Pracownik: ${currentMaskedLogin}, Procedura: ${procedure}`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+
+                        if (loginInput) loginInput.value = "";
+                        if (procedureSelect) procedureSelect.value = "";
+                        if (ssccInput) ssccInput.value = "";
+                        const ssccBlock = document.getElementById("sscc-block");
+                        if (ssccBlock) ssccBlock.style.display = "none";
+
+                        backToMenu();
+                        loadActiveUsers();
+                        isStarting = false;
+                    })
+                    .withFailureHandler((err) => {
+                        Swal.fire("Błąd", "Błąd podczas zapisu startu: " + err.message, "error");
+                        isStarting = false;
+                    })
+                    .addToActive(data);
+            } else {
+                // Symulacja
+                console.warn("google.script.run nieobecny. Symulacja sukcesu.");
+                isStarting = false;
+                backToMenu();
+            }
+        };
+
+        // KROK 1: Pobierz maskę loginu (np. Jan K.)
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+                .withSuccessHandler((maskedLoginFromServer) => {
+                    
+                    // KROK 2: Sprawdź aktywność używając pobranej maski
+                    google.script.run
+                        .withSuccessHandler((isUserCurrentlyActiveResponse) => {
+                            let userIsActive = false;
+                            let serverMessage = "";
+
+                            if (typeof isUserCurrentlyActiveResponse === 'boolean') {
+                                userIsActive = isUserCurrentlyActiveResponse;
+                            } else if (isUserCurrentlyActiveResponse) {
+                                userIsActive = isUserCurrentlyActiveResponse.isActive;
+                                serverMessage = isUserCurrentlyActiveResponse.message;
+                            }
+
+                            if (userIsActive) {
+                                Swal.fire("Aktywna sesja", serverMessage || "Masz już uruchomiony proces!", "info");
+                                isStarting = false;
+                            } else {
+                                // KROK 3: Jeśli wolny, dodaj sesję
+                                proceedWithAddingSession(maskedLoginFromServer);
+                            }
+                        })
+                        .withFailureHandler((err) => {
+                            Swal.fire("Błąd", "Błąd weryfikacji statusu: " + err.message, "error");
+                            isStarting = false;
+                        })
+                        .checkIfUserIsActive(maskedLoginFromServer);
+                })
+                .withFailureHandler((err) => {
+                    Swal.fire("Błąd", "Błąd weryfikacji loginu: " + err.message, "error");
+                    isStarting = false;
+                })
+                .resolveLogin(login);
+        } else {
+            // Symulacja lokalna
+            proceedWithAddingSession(login.toUpperCase() + "_MASKED");
+        }
+    }
+    function finishProcess() {
+        if (isStopping) return;
+        isStopping = true;
+
+        const loginRawInput = document.getElementById("stop_login");
+        const procedureSelect = document.getElementById("stop_procedure");
+        //const loginRaw = loginRawInput ? loginRawInput.value.trim() : "";
+        const loginRaw = loginRawInput ? loginRawInput.value.trim().replace(/[^a-zA-Z0-9]/g, '') : "";
+        const procedure = procedureSelect ? procedureSelect.value : "";
+
+        if (!loginRaw || !procedure) {
+            Swal.fire("Błąd", "Wprowadź dane do zakończenia", "warning");
+            isStopping = false; 
+            return;
+        }
+
+        Swal.fire({ title: 'Weryfikacja sesji...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        const handleSessions = (sessions) => {
+            if (!Array.isArray(sessions)) {
+                Swal.fire("Błąd", "Brak aktywnej sesji.", "error");
+                isStopping = false;
+                return;
+            }
+
+            const match = sessions.find(s => String(s.login).toLowerCase() === loginRaw.toLowerCase() && String(s.procedure) === String(procedure));
+            
+            if (!match) {
+                Swal.fire("Nie znaleziono", "Brak aktywnego procesu dla tych danych!", "error");
+                isStopping = false; 
+                return;
+            }
+
+            const stopDate = new Date();
+            const durationMs = stopDate.getTime() - new Date(match.start).getTime();
+            const diffHours = durationMs / (1000 * 60 * 60);
+            
+            let iloscValue = 0;
+            const data = {
+                login: match.login,
+                procedure: procedure,
+                sscc: match.sscc || "",
+                start: match.start,
+                stop: stopDate.toISOString(),
+                duration: Math.round(durationMs / 1000)
+            };
+
+            // Zbieranie pól dodatkowych
+            const fields = paramMapStop[procedure] || [];
+            for (const id of fields) {
+                const el = document.getElementById(`stop_${id}`);
+                if (!el) continue;
+                let value = el.value.trim();
+                
+                if (id === "Ilosc_kartonow" || id === "Ilosc_pallet") {
+                    const numValue = parseInt(value, 10);
+                    if (value !== "" && (isNaN(numValue) || numValue < 0)) {
+                        Swal.fire("Błąd danych", `Pole '${id.replace(/_/g, " ")}' musi być liczbą!`, "warning");
+                        isStopping = false;
+                        return;
+                    }
+                    if (id === "Ilosc_kartonow") iloscValue = numValue;
+                    value = isNaN(numValue) ? "" : numValue.toString();
+                }
+                data[id] = value;
+            }
+
+            // Mapowanie na pole .ilosc dla serwera
+            if (iloscValue > 0) data.ilosc = iloscValue;
+
+            // --- OBLICZANIE WYDAJNOŚCI (NORMA 399) ---
+            let performanceInfo = "";
+            if (procedure === "Oklejanie" && iloscValue > 0 && diffHours > 0) {
+                const wydajnoscH = Math.round(iloscValue / diffHours);
+                const realnyProcent = Math.round((wydajnoscH / 399) * 100);
+
+                let kolor = "#16a34a"; // Zielony
+                if (realnyProcent < 100) kolor = "#f97316"; // Pomarańczowy
+                if (realnyProcent < 60) kolor = "#dc2626"; // Czerwony
+
+                performanceInfo = `
+                    <div style="margin-top:15px; padding:15px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; text-align:center;">
+                        <div style="font-size:0.85rem; color:#64748b; text-transform:uppercase; font-weight:600; letter-spacing:1px;">Wydajność Realna (Norma: 399)</div>
+                        <div style="font-size:2.25rem; font-weight:900; color:${kolor}; margin:5px 0;">${realnyProcent}%</div>
+                        <div style="font-size:1.1rem; color:#475569; font-weight:600;">${wydajnoscH} <span style="font-size:0.8rem;">szt./h</span></div>
+                        <hr style="margin:10px 0; border:0; border-top:1px solid #e2e8f0;">
+                        <div style="font-size: 0.75rem; color: #94a3b8;">Czas: ${Math.round(diffHours * 60)} min | Ilość: ${iloscValue} szt.</div>
+                    </div>`;
+            }
+
+            const finalize = (mask) => {
+                data.loginMask = mask;
+                google.script.run
+                    .withSuccessHandler(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Zakończono!',
+                            html: `Pracownik: <b>${mask}</b><br>Proces: ${procedure}${performanceInfo}`,
+                            confirmButtonColor: '#3b82f6'
+                        });
+                        
+                        if (loginRawInput) loginRawInput.value = "";
+                        if (procedureSelect) procedureSelect.value = "";
+                        const block = document.getElementById("params-block-stop");
+                        if (block) block.innerHTML = "";
+                        
+                        backToMenu();
+                        loadActiveUsers();
+                        isStopping = false;
+                    })
+                    .withFailureHandler((err) => {
+                        Swal.fire("Błąd", "Błąd zapisu danych: " + err.message, "error");
+                        isStopping = false;
+                    })
+                    .saveProcessData(data);
+            };
+
+            // KROK: Usuwanie z aktywnych i pobieranie maski przed finalize
+            google.script.run
+                .withSuccessHandler(() => {
+                    google.script.run
+                        .withSuccessHandler(finalize)
+                        .resolveLogin(match.login);
+                })
+                .withFailureHandler((err) => {
+                    Swal.fire("Błąd", "Błąd usuwania sesji: " + err.message, "error");
+                    isStopping = false;
+                })
+                .removeFromActive(match.login, procedure);
+        };
+
+        google.script.run
+            .withSuccessHandler(handleSessions)
+            .withFailureHandler((err) => {
+                Swal.fire("Błąd", "Błąd pobierania sesji: " + err.message, "error");
+                isStopping = false;
+            })
+            .getActiveSessions();
+    }
+    
+
+    
+    function renderActiveUsers(usersAndMap) {
+      const container = document.getElementById("activeUsers");
+      if (!container) return;
+      container.innerHTML = ""; 
+
+      if (!usersAndMap || !usersAndMap.users || !Array.isArray(usersAndMap.users)) {
+        container.innerHTML = '<div class="text-center text-slate-500">Błąd danych użytkowników</div>';
+        return;
+      }
+
+      const { users, loginMap } = usersAndMap;
+
+      if (users.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-400 py-4">Brak aktywnych procesów</div>';
+        return;
+      }
+
+      users.forEach((u, index) => {
+        // 1. Logika czasu
+        const startTime = u.startTimestamp || (u.start ? new Date(u.start).getTime() : Date.now());
+        const since = Math.floor((Date.now() - startTime) / 1000);
+        const h = String(Math.floor(since / 3600)).padStart(2, '0');
+        const m = String(Math.floor((since % 3600) / 60)).padStart(2, '0');
+        const s = String(since % 60).padStart(2, '0');
+        
+        // 2. Mapowanie nazw (Twoja logika)
+        const visibleLogin = (loginMap && u.login && loginMap[String(u.login).toLowerCase()]) ? 
+                            loginMap[String(u.login).toLowerCase()] : 
+                            (u.loginMask || u.login || "Nieznany");
+
+        // 3. Klasa strony (Naprzemiennie)
+        const sideClass = (index % 2 === 0) ? 'left' : 'right';
+
+        // 4. Klasa koloru timera (Twoja logika 4h / 8h)
+        let timerClass = "t-normal";
+        if (since > 8 * 3600) timerClass = "t-danger";
+        else if (since > 4 * 3600) timerClass = "t-warning";
+
+        // 5. Budowanie HTML dymka
+        const bubble = document.createElement("div");
+        bubble.className = `user-bubble ${sideClass}`;
+        
+        const isAnomalia = u.procedure && String(u.procedure).toLowerCase() === "anomalia";
+        const statusText = isAnomalia ? 
+          `<span style="color:var(--danger)">⚠️ ANOMALIA</span>` : 
+          `<span style="color:var(--success)">● AKTYWNY</span>`;
+
+        bubble.innerHTML = `
+          <div class="bubble-header">${visibleLogin}</div>
+          <div class="bubble-sub">${u.procedure || "Brak procedury"}</div>
+          <div style="font-size: 0.65rem; margin-top: 2px; font-weight: 700;">${statusText}</div>
+          <div>
+            <span class="bubble-timer ${timerClass}">${h}:${m}:${s}</span>
+          </div>
+        `;
+
+        container.appendChild(bubble);
+      });
+    }
+
+    let isFetchingUsers = false; // Flaga blokująca nakładające się zapytania
+    let lastUsersJson = "";
+
+    function loadActiveUsers() {
+        // Jeśli skrypt już pobiera dane, nie rób nic
+        if (isFetchingUsers) return;
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            isFetchingUsers = true; // Blokujemy
+
+            google.script.run
+                .withSuccessHandler(data => {
+                    isFetchingUsers = false; // Odblokowujemy po sukcesie
+                    const currentJson = JSON.stringify(data.users);
+                    if (currentJson !== lastUsersJson) {
+                        renderActiveUsers(data);
+                        lastUsersJson = currentJson;
+                    }
+                })
+                .withFailureHandler(err => {
+                    isFetchingUsers = false; // Odblokowujemy po błędzie
+                    console.error("Błąd ładowania aktywnych:", err);
+                    // Nie wyświetlamy błędu użytkownikowi, żeby nie psuć UX
+                })
+                .getUsersAndLoginMap(); 
+        }
+    }
+    
+    window.onload = () => {
+      
+      //setInterval(loadActiveUsers, 5000); // Odświeżaj co 5 sekund
+      const currentYearEl = document.getElementById('currentYear');
+      if(currentYearEl) currentYearEl.textContent = new Date().getFullYear();
+      
+      if(slides.length > 0) { // Pokaż pierwszy slajd instrukcji
+        slides[0].style.display = "block";
+        slides[0].classList.add("active");
+      }
+      // Domyślnie pokaż mainMenu
+      backToMenu();
+    };
+  </script>
+</body>
+</html>
